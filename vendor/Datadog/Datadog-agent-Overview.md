@@ -104,8 +104,11 @@ checks大体可以分为3类：
 主要意图：与编排工具(k8s)一起使用，对于集群层面的采集，由cluster-agent来发起，避免 node-agent各自去访问Api Server,损坏集群性能，建立有层次感的监控体系。
 
 **没有Cluster Agent时**
+
 ![k8s_without_cluster_agent](https://imgix.datadoghq.com/img/blog/datadog-cluster-agent/kubernetes_diagrams_before_updated.png?auto=format&fit=max&w=847)
+
 **有Cluster Agent时**
+
 ![k8s_with_cluster_agent](https://imgix.datadoghq.com/img/blog/datadog-cluster-agent/kubernetes_diagrams_after_updated.png?auto=format&fit=max&w=847)
 
 ### 部署
