@@ -1,6 +1,8 @@
 ## 1. agent目录结构
 datadog支持多种形式(平台)的[安装](https://docs.datadoghq.com/agent/)
 
+https://app.datadoghq.com/signup/agent
+
 1. datadog-agent目录结构(linux)
 
 - **/opt/datadog-agent/**
@@ -19,7 +21,26 @@ datadog支持多种形式(平台)的[安装](https://docs.datadoghq.com/agent/)
   - runtime-security.d
 
 ## 2. agent
+
 ### 2.1 agent
+
+#### 2.1.1 collector
+
+[collector]() 是agent实现采集的核心包，每个采集任务视为一个check, collector管理check的生命周期，从而实现数据采集。
+
+
+
+collector 在逻辑上可以看作三个部分
+
+- [Loader](https://github.com/DataDog/datadog-agent/blob/main/pkg/collector/check/README.md)   根据条件加载check
+- [Scheduler](https://github.com/DataDog/datadog-agent/blob/main/pkg/collector/scheduler/README.md)  按执行周期调度check
+  - 维护一组定时器，每个定时器关联一个check列表
+  - 定时器触发时，把列表中的check放入执行队列中
+- [Runner](https://github.com/DataDog/datadog-agent/blob/main/pkg/collector/runner/runner.go) 执行check
+  - 维护一组[worker](https://github.com/DataDog/datadog-agent/blob/main/pkg/collector/worker/worker.go)
+    - worker 持续从 执行队列中 取 check 执行
+
+
 
 checks由主要由三个加载器来加载
 
@@ -47,7 +68,7 @@ checks由主要由三个加载器来加载
 
 
 
-#### 2.1.1 jmx integrations
+#### 2.1.2 jmx integrations
 
 [jmxfetch loader](https://github.com/DataDog/datadog-agent/blob/main/pkg/jmxfetch/jmxfetch.go) 根据配置启动 jmxfetch.jar 来采集指定端口的相关jmx指标
 
@@ -55,47 +76,30 @@ checks由主要由三个加载器来加载
   - [kafka/conf.yaml.example](https://github.com/DataDog/integrations-core/blob/master/kafka/datadog_checks/kafka/data/conf.yaml.example)
 - metrics.yaml 用来指定目标的jmx指标列表 
   - [kafka/metrics.yaml](https://github.com/DataDog/integrations-core/blob/master/kafka/datadog_checks/kafka/data/metrics.yaml)
+- auto_conf.yaml
+  - https://github.com/DataDog/integrations-core/blob/master/presto/datadog_checks/presto/data/auto_conf.yaml
 
-#### 2.1.2 python integrations
 
-** [agent collector(go)](https://github.com/DataDog/datadog-agent/tree/main/pkg/collector) - [rtloader(cpp)](https://github.com/DataDog/datadog-agent/tree/main/rtloader) - checks(python) **
+#### 2.1.3 python integrations
+
+[agent collector(go)](https://github.com/DataDog/datadog-agent/tree/main/pkg/collector) - [rtloader(cpp)](https://github.com/DataDog/datadog-agent/tree/main/rtloader) - checks(python)
 
 - 根据agent导出的接口，使用python实现各个check
   - [apache/apache.py](https://github.com/DataDog/integrations-core/blob/master/apache/datadog_checks/apache/apache.py)
 - conf.yaml主要用来指定要访问的指标url，手动配置
   - [apache/conf.yaml.example](https://github.com/DataDog/integrations-core/blob/master/apache/datadog_checks/apache/data/conf.yaml.example)
-- auto_conf.yaml **用于容器场景的自动配置(根据image/k8s tags来匹配相应的组件，抓起url等信息，启动相应的check)**
+- auto_conf.yaml 
   - [apache/auto_conf.yaml](https://github.com/DataDog/integrations-core/blob/master/apache/datadog_checks/apache/data/auto_conf.yaml)
 
+#### 2.1.4 integration auto discover
 
+**用于容器场景的自动配置(根据image tags/k8s labels 来匹配相应的组件，自动抓取或者指定url等信息，启动相应的check)**
 
-### 2.2 process-agent
-
-- 采集本机的进程
-- 如果是容器环境，再聚合上相应的容器信息(container,pod,service 等)
-
-也是通过管理[checks](https://github.com/DataDog/datadog-agent/blob/main/pkg/process/checks/checks.go)来实现采集：
-
-```
-var All = []Check{
-	Process,
-	Container,
-	RTContainer,
-	Connections,
-	Pod,
-	ProcessDiscovery,
-}
-```
+https://docs.datadoghq.com/agent/kubernetes/integrations/?tab=kubernetes
 
 
 
-### 2.3 trace-agent
-
-- 监听trace端口，供应用探针上报APM数据
-  - [java apm](https://docs.datadoghq.com/tracing/setup_overview/setup/java/?tab=containers#configure-the-datadog-agent-for-apm)
-    ![dogstatsd](https://datadog-docs.imgix.net/images/metrics/dogstatsd_metrics_submission/dogstatsd.3a5e9025f10b90c125a752fe0fd8e115.png?fit=max&auto=format)
-
-### 2.4 数据流
+#### 2.1.5 数据流
 
 ```
      +===========+                       +===============+
@@ -139,7 +143,40 @@ var All = []Check{
                                                +=================+
 ```
 
+
+
+
+
+### 2.2 process-agent
+
+- 采集本机的进程
+- 如果是容器环境，再聚合上相应的容器信息(container,pod,service 等)
+
+也是通过管理[checks](https://github.com/DataDog/datadog-agent/blob/main/pkg/process/checks/checks.go)来实现采集：
+
+```go
+var All = []Check{
+	Process,
+	Container,
+	RTContainer,
+	Connections,
+	Pod,
+	ProcessDiscovery,
+}
+```
+
+
+
+### 2.3 trace-agent
+
+- 监听trace端口，供应用探针上报APM数据
+  - [java apm](https://docs.datadoghq.com/tracing/setup_overview/setup/java/?tab=containers#configure-the-datadog-agent-for-apm)
+    ![dogstatsd](https://datadog-docs.imgix.net/images/metrics/dogstatsd_metrics_submission/dogstatsd.3a5e9025f10b90c125a752fe0fd8e115.png?fit=max&auto=format)
+
+
+
 ## 3. Datadog Cluster Agent
+
 主要意图：与编排工具(k8s)一起使用，对于集群层面的采集，由cluster-agent来发起，避免 node-agent各自去访问Api Server,损坏集群性能，建立有层次感的监控体系。
 
 **没有Cluster Agent时**
