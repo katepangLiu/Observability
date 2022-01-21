@@ -38,9 +38,9 @@ https://app.datadoghq.com/signup/agent
 - [scheduler](https://github.com/DataDog/datadog-agent/blob/main/pkg/autodiscovery/scheduler/meta.go)
   - 将配置列表分发给注册到MetaScheduler上的scheduler,  
     - [check scheduler](https://github.com/DataDog/datadog-agent/tree/main/pkg/collector/scheduler/scheduler.go)   
-      - [Schedule(configs []integration.Config)](https://github.com/DataDog/datadog-agent/blob/d0ad6e2d4ceb599558f24c951bc9163499e24fae/pkg/collector/scheduler.go#L71)   根据configs创建checks，放入运行队列
+      - [Schedule(configs []integration.Config)](https://github.com/DataDog/datadog-agent/blob/d0ad6e2d4ceb599558f24c951bc9163499e24fae/pkg/collector/scheduler.go#L71)   根据configs创建checks，放入**collector运行队列**
         - [Collector.RunCheck()](https://github.com/DataDog/datadog-agent/blob/d0ad6e2d4ceb599558f24c951bc9163499e24fae/pkg/collector/collector.go#L93)
-      - [Unschedule(configs []integration.Config)](https://github.com/DataDog/datadog-agent/blob/d0ad6e2d4ceb599558f24c951bc9163499e24fae/pkg/collector/scheduler.go#L84)  将指定的checks移除运行队列
+      - [Unschedule(configs []integration.Config)](https://github.com/DataDog/datadog-agent/blob/d0ad6e2d4ceb599558f24c951bc9163499e24fae/pkg/collector/scheduler.go#L84)  将指定的checks，移除collector运行队列
     - [log scheduler](https://github.com/DataDog/datadog-agent/blob/main/pkg/logs/scheduler/scheduler.go)
       - [Schedule(configs []integration.Config)](https://github.com/DataDog/datadog-agent/blob/d0ad6e2d4ceb599558f24c951bc9163499e24fae/pkg/logs/scheduler/scheduler.go#L55)
       - [Unschedule(configs []integration.Config)](https://github.com/DataDog/datadog-agent/blob/d0ad6e2d4ceb599558f24c951bc9163499e24fae/pkg/logs/scheduler/scheduler.go#L100)
@@ -53,13 +53,13 @@ https://app.datadoghq.com/signup/agent
 
 collector 在逻辑上可以看作三个部分
 
-- [Loader](https://github.com/DataDog/datadog-agent/blob/main/pkg/collector/check/README.md)   使用相应的加载器来加载check，比如python类，就用python解释器加载
-- [Scheduler](https://github.com/DataDog/datadog-agent/blob/main/pkg/collector/scheduler/README.md)  按执行周期调度check
+- [Check Loader](https://github.com/DataDog/datadog-agent/blob/main/pkg/collector/check/README.md)   使用相应的加载器来加载check，比如python类，就用python解释器加载
+- [collector.scheduler](https://github.com/DataDog/datadog-agent/blob/main/pkg/collector/scheduler/README.md)  按执行周期调度check
   - 维护一组定时器，每个定时器关联一个check列表
-  - 定时器触发时，把列表中的check放入执行队列中
+  - 定时器触发时，把列表中的check放入**check执行队列**中
 - [Runner](https://github.com/DataDog/datadog-agent/blob/main/pkg/collector/runner/runner.go) 执行check
   - 维护一组[worker](https://github.com/DataDog/datadog-agent/blob/main/pkg/collector/worker/worker.go)
-    - worker 持续从 执行队列中 取 check 执行
+    - worker 持续从check执行队列中 取 check 执行
 
 #### 2.1.3 Check Loaders
 
