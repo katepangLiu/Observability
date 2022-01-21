@@ -1,4 +1,4 @@
-## 1. agent目录结构
+## 1. Overview
 datadog支持多种形式(平台)的[安装](https://docs.datadoghq.com/agent/)
 
 https://app.datadoghq.com/signup/agent
@@ -20,19 +20,40 @@ https://app.datadoghq.com/signup/agent
   - compliance.d
   - runtime-security.d
 
-## 2. agent
+## 2. Datadog Agent
 
 ### 2.1 agent
 
-#### 2.1.1 collector
+#### 2.1.1 autodiscovery
 
-[collector]() 是agent实现采集的核心包，每个采集任务视为一个check, collector管理check的生命周期，从而实现数据采集。
+[**AutoConfig**](https://github.com/DataDog/datadog-agent/blob/d0ad6e2d4ceb599558f24c951bc9163499e24fae/pkg/autodiscovery/autoconfig.go#L60)
+
+- [config](https://github.com/DataDog/datadog-agent/blob/main/pkg/autodiscovery/integration/config.go)
+  - [providers](https://github.com/DataDog/datadog-agent/tree/main/pkg/autodiscovery/providers)  从各种配置来源获取 配置 或配置模板
+    - 当一个配置中包含 ADIdentifiers或者AdvancedADIdentifiers字段时，表示这是一个配置模板  [IsTemplate](https://github.com/DataDog/datadog-agent/blob/84c9ad13ec50f97b5552fd9506cb82a37492afd8/pkg/autodiscovery/integration/config.go#L135)
+  - [listeners](https://github.com/DataDog/datadog-agent/tree/main/pkg/autodiscovery/listeners)    收集 容器, k8s endpoints, k8s service 等监控目标及其各种属性，监控目标称为 Service
+  - [configresolver](https://github.com/DataDog/datadog-agent/tree/main/pkg/autodiscovery/configresolver)   
+    - 对于配置模板，根据`ADIdentifiers`关联Service，取Service的属性值，对模板中的变量进行填充，如 `host`, `port`
+    - 不是配置模板的，不做处理
+- [scheduler](https://github.com/DataDog/datadog-agent/blob/main/pkg/autodiscovery/scheduler/meta.go)
+  - 将配置列表分发给注册到MetaScheduler上的scheduler,  
+    - [check scheduler](https://github.com/DataDog/datadog-agent/tree/main/pkg/collector/scheduler/scheduler.go)   
+      - [Schedule(configs []integration.Config)](https://github.com/DataDog/datadog-agent/blob/d0ad6e2d4ceb599558f24c951bc9163499e24fae/pkg/collector/scheduler.go#L71)   根据configs创建checks，放入运行队列
+        - [Collector.RunCheck()](https://github.com/DataDog/datadog-agent/blob/d0ad6e2d4ceb599558f24c951bc9163499e24fae/pkg/collector/collector.go#L93)
+      - [Unschedule(configs []integration.Config)](https://github.com/DataDog/datadog-agent/blob/d0ad6e2d4ceb599558f24c951bc9163499e24fae/pkg/collector/scheduler.go#L84)  将指定的checks移除运行队列
+    - [log scheduler](https://github.com/DataDog/datadog-agent/blob/main/pkg/logs/scheduler/scheduler.go)
+      - [Schedule(configs []integration.Config)](https://github.com/DataDog/datadog-agent/blob/d0ad6e2d4ceb599558f24c951bc9163499e24fae/pkg/logs/scheduler/scheduler.go#L55)
+      - [Unschedule(configs []integration.Config)](https://github.com/DataDog/datadog-agent/blob/d0ad6e2d4ceb599558f24c951bc9163499e24fae/pkg/logs/scheduler/scheduler.go#L100)
 
 
+
+#### 2.1.2 Collector
+
+[collector](https://github.com/DataDog/datadog-agent/tree/main/pkg/collector)  每个采集任务视为一个check, collector管理所有check的生命周期，从而实现数据采集。
 
 collector 在逻辑上可以看作三个部分
 
-- [Loader](https://github.com/DataDog/datadog-agent/blob/main/pkg/collector/check/README.md)   根据条件加载check
+- [Loader](https://github.com/DataDog/datadog-agent/blob/main/pkg/collector/check/README.md)   使用相应的加载器来加载check，比如python类，就用python解释器加载
 - [Scheduler](https://github.com/DataDog/datadog-agent/blob/main/pkg/collector/scheduler/README.md)  按执行周期调度check
   - 维护一组定时器，每个定时器关联一个check列表
   - 定时器触发时，把列表中的check放入执行队列中
@@ -40,7 +61,7 @@ collector 在逻辑上可以看作三个部分
   - 维护一组[worker](https://github.com/DataDog/datadog-agent/blob/main/pkg/collector/worker/worker.go)
     - worker 持续从 执行队列中 取 check 执行
 
-
+#### 2.1.3 Check Loaders
 
 checks由主要由三个加载器来加载
 
@@ -68,7 +89,7 @@ checks由主要由三个加载器来加载
 
 
 
-#### 2.1.2 jmx integrations
+#### 2.1.4 jmx integrations
 
 [jmxfetch loader](https://github.com/DataDog/datadog-agent/blob/main/pkg/jmxfetch/jmxfetch.go) 根据配置启动 jmxfetch.jar 来采集指定端口的相关jmx指标
 
@@ -80,7 +101,7 @@ checks由主要由三个加载器来加载
   - [presto/auto_conf.yaml](https://github.com/DataDog/integrations-core/blob/master/presto/datadog_checks/presto/data/auto_conf.yaml)
 
 
-#### 2.1.3 python integrations
+#### 2.1.5 python integrations
 
 [agent collector(go)](https://github.com/DataDog/datadog-agent/tree/main/pkg/collector) - [rtloader(cpp)](https://github.com/DataDog/datadog-agent/tree/main/rtloader) - checks(python)
 
@@ -91,17 +112,9 @@ checks由主要由三个加载器来加载
 - auto_conf.yaml 
   - [apache/auto_conf.yaml](https://github.com/DataDog/integrations-core/blob/master/apache/datadog_checks/apache/data/auto_conf.yaml)
 
-#### 2.1.4 integration auto discover
-
-**用于容器场景的自动配置(根据image tags/k8s labels 来匹配相应的组件，自动抓取或者指定url等信息，启动相应的check)**
-
-https://docs.datadoghq.com/agent/kubernetes/integrations/?tab=kubernetes
 
 
-
-
-
-#### 2.1.5 数据流
+#### 2.1.6 Data Flow
 
 ```
      +===========+                       +===============+
@@ -179,7 +192,9 @@ var All = []Check{
 
 ## 3. Datadog Cluster Agent
 
-主要意图：与编排工具(k8s)一起使用，对于集群层面的采集，由cluster-agent来发起，避免 node-agent各自去访问Api Server,损坏集群性能，建立有层次感的监控体系。
+### Why Cluster Agent
+
+主要意图：与编排工具(k8s)一起使用，对于集群层面的采集，由cluster-agent来发起，避免 node-agent各自去访问Api Server,损坏集群性能，建立cluster-node监控体系。
 
 **没有Cluster Agent时**
 
@@ -189,13 +204,15 @@ var All = []Check{
 
 ![k8s_with_cluster_agent](https://imgix.datadoghq.com/img/blog/datadog-cluster-agent/kubernetes_diagrams_after_updated.png?auto=format&fit=max&w=847)
 
-### 部署
+
+
+### Deployment
 
 - helm (建议)
   - https://app.datadoghq.com/signup/agent#kubernetes
   - [datadog-values.yaml](https://github.com/DataDog/helm-charts/blob/main/charts/datadog/values.yaml)
 - operator (beta)
-```
+```shell
 # add repo
 helm repo add datadog https://helm.datadoghq.com
 
@@ -206,7 +223,8 @@ helm install datadog -f datadog-values.yaml --set datadog.site='datadoghq.com' -
 helm upgrade datadog -f datadog-values.yaml --set datadog.site='datadoghq.com' --set datadog.apiKey='ea91cf03de5de240049184591f2e51a7' datadog/datadog
 ```
 
-### 部署效果
+
+
 ```shell
 NAMESPACE     NAME                                              READY   STATUS    RESTARTS   AGE
 default       pod/datadog-c9mgk                                 3/3     Running   0          3h59m
@@ -246,7 +264,8 @@ root      80467  80447  0 Jan20 ?        00:10:47 process-agent -config=/etc/dat
   - datadog-cluster-agent      （向node-agent提供集群层面的元数据服务）
   - datadog-kube-state-metrics  (kube-state-metrics k8s集群指标,promethus格式， [kubernetes_state_core](https://docs.datadoghq.com/integrations/kubernetes_state_core/?tab=helm)访问该服务进行采集)
 
-### 部署原理
+### Analyse
+
 - daemonset
   - datadog
 - deployment
