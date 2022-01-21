@@ -264,7 +264,7 @@ root      80467  80447  0 Jan20 ?        00:10:47 process-agent -config=/etc/dat
   - datadog-cluster-agent      （向node-agent提供集群层面的元数据服务）
   - datadog-kube-state-metrics  (kube-state-metrics k8s集群指标,promethus格式， [kubernetes_state_core](https://docs.datadoghq.com/integrations/kubernetes_state_core/?tab=helm)访问该服务进行采集)
 
-### Analyse
+### Workload
 
 - daemonset
   - datadog
