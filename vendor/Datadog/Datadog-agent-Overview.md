@@ -77,7 +77,7 @@ checks由主要由三个加载器来加载
 - metrics.yaml 用来指定目标的jmx指标列表 
   - [kafka/metrics.yaml](https://github.com/DataDog/integrations-core/blob/master/kafka/datadog_checks/kafka/data/metrics.yaml)
 - auto_conf.yaml
-  - https://github.com/DataDog/integrations-core/blob/master/presto/datadog_checks/presto/data/auto_conf.yaml
+  - [presto/auto_conf.yaml](https://github.com/DataDog/integrations-core/blob/master/presto/datadog_checks/presto/data/auto_conf.yaml)
 
 
 #### 2.1.3 python integrations
@@ -96,6 +96,8 @@ checks由主要由三个加载器来加载
 **用于容器场景的自动配置(根据image tags/k8s labels 来匹配相应的组件，自动抓取或者指定url等信息，启动相应的check)**
 
 https://docs.datadoghq.com/agent/kubernetes/integrations/?tab=kubernetes
+
+
 
 
 
@@ -219,21 +221,30 @@ default       service/datadog-kube-state-metrics      ClusterIP   10.96.1.25    
 NAMESPACE     NAME                                         READY   UP-TO-DATE   AVAILABLE   AGE
 default       deployment.apps/datadog-cluster-agent        1/1     1            1           7h55m
 default       deployment.apps/datadog-kube-state-metrics   1/1     1            1           7h55m
+
+# worker
+[root@stuart tools]# ps -ef |grep agent
+root      39224  39203  0 Jan20 ?        00:02:21 datadog-cluster-agent start
+root      39615  39594  1 Jan20 ?        00:21:48 agent run
+root      39668  39645  0 Jan20 ?        00:01:34 trace-agent -config=/etc/datadog-agent/datadog.yaml
+root      39733  39710  0 Jan20 ?        00:10:17 process-agent -config=/etc/datadog-agent/datadog.yaml
+
+[root@miffy kubelet]# ps -ef |grep agent
+root      80347  80326  1 Jan20 ?        00:24:16 agent run
+root      80400  80379  0 Jan20 ?        00:01:35 trace-agent -config=/etc/datadog-agent/datadog.yaml
+root      80467  80447  0 Jan20 ?        00:10:47 process-agent -config=/etc/datadog-agent/datadog.yaml
 ```
 
 
 
 - Pods
-
   - datadog  (per worker node)
-
   - datadog-cluster-agent  (per cluster)
-
   - dataodg-kube-state-metrics (per cluster)
 
 - service
   - datadog-cluster-agent      （向node-agent提供集群层面的元数据服务）
-  - datadog-kube-state-metrics  (kube-state-metrics k8s集群指标,promethus格式)
+  - datadog-kube-state-metrics  (kube-state-metrics k8s集群指标,promethus格式， [kubernetes_state_core](https://docs.datadoghq.com/integrations/kubernetes_state_core/?tab=helm)访问该服务进行采集)
 
 ### 部署原理
 - daemonset
