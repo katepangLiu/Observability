@@ -18,26 +18,36 @@ datadog支持多种形式(平台)的[安装](https://docs.datadoghq.com/agent/)
   - compliance.d
   - runtime-security.d
 
-## 2. checks
-checks大体可以分为3类：
-- go
-  - default checks
-    - cpu,disk,file_handle,io,load,memory,network,ntp,uptime
-  - process-agent 
-  - trace-agent + 各种应用探针
-- jmxfetch + conf.yaml + metrics.yaml
-- python integration + conf.yaml
+## 2. agent
+### 2.1 agent
 
-### 2.1 process-agent
-- 采集本机的进程
-- 如果是容器环境，再聚合上相应的容器信息(container,pod,service 等)
+checks由主要由三个加载器来加载
 
-### 2.2 trace-agent
-- 监听trace端口，供应用探针上报APM数据
-  - [java apm](https://docs.datadoghq.com/tracing/setup_overview/setup/java/?tab=containers#configure-the-datadog-agent-for-apm)
-  ![dogstatsd](https://datadog-docs.imgix.net/images/metrics/dogstatsd_metrics_submission/dogstatsd.3a5e9025f10b90c125a752fe0fd8e115.png?fit=max&auto=format)
+- [Core Check Loader](https://github.com/DataDog/datadog-agent/blob/main/pkg/collector/corechecks/loader.go)
+  - cluster
+  - containers
+  - containerlifecycle
+  - system
+  - systemd
+  - ebpf
+  - net
+  - snmp
+  - nvidia
+  - embed
+    - apm agent        (监控 trace-agent的运行状态)
+    - process agent  (监控 process-agent的运行状态)
+    - jmx loader
+    - python loader
+- [JMX Check Loader](https://github.com/DataDog/datadog-agent/blob/main/pkg/collector/corechecks/embed/jmx/loader.go)
+  - conf.yaml
+  - jmxfetch  jmxurl metrics.aml
+- [Python Check Loader](https://github.com/DataDog/datadog-agent/blob/main/pkg/collector/python/loader.go)
+  - conf.yaml
+  - python package
 
-### 2.3 jmx integrations
+
+
+#### 2.1.1 jmx integrations
 
 [jmxfetch loader](https://github.com/DataDog/datadog-agent/blob/main/pkg/jmxfetch/jmxfetch.go) 根据配置启动 jmxfetch.jar 来采集指定端口的相关jmx指标
 
@@ -46,7 +56,8 @@ checks大体可以分为3类：
 - metrics.yaml 用来指定目标的jmx指标列表 
   - [kafka/metrics.yaml](https://github.com/DataDog/integrations-core/blob/master/kafka/datadog_checks/kafka/data/metrics.yaml)
 
-### 2.4 python integrations
+#### 2.1.2 python integrations
+
 ** [agent collector(go)](https://github.com/DataDog/datadog-agent/tree/main/pkg/collector) - [rtloader(cpp)](https://github.com/DataDog/datadog-agent/tree/main/rtloader) - checks(python) **
 
 - 根据agent导出的接口，使用python实现各个check
@@ -57,7 +68,35 @@ checks大体可以分为3类：
   - [apache/auto_conf.yaml](https://github.com/DataDog/integrations-core/blob/master/apache/datadog_checks/apache/data/auto_conf.yaml)
 
 
-## 3. 数据流
+
+### 2.2 process-agent
+
+- 采集本机的进程
+- 如果是容器环境，再聚合上相应的容器信息(container,pod,service 等)
+
+也是通过管理[checks](https://github.com/DataDog/datadog-agent/blob/main/pkg/process/checks/checks.go)来实现采集：
+
+```
+var All = []Check{
+	Process,
+	Container,
+	RTContainer,
+	Connections,
+	Pod,
+	ProcessDiscovery,
+}
+```
+
+
+
+### 2.3 trace-agent
+
+- 监听trace端口，供应用探针上报APM数据
+  - [java apm](https://docs.datadoghq.com/tracing/setup_overview/setup/java/?tab=containers#configure-the-datadog-agent-for-apm)
+    ![dogstatsd](https://datadog-docs.imgix.net/images/metrics/dogstatsd_metrics_submission/dogstatsd.3a5e9025f10b90c125a752fe0fd8e115.png?fit=max&auto=format)
+
+### 2.4 数据流
+
 ```
      +===========+                       +===============+
      + DogStatsD +                       +    checks     +
@@ -100,7 +139,7 @@ checks大体可以分为3类：
                                                +=================+
 ```
 
-## 4. Datadog Cluster Agent
+## 3. Datadog Cluster Agent
 主要意图：与编排工具(k8s)一起使用，对于集群层面的采集，由cluster-agent来发起，避免 node-agent各自去访问Api Server,损坏集群性能，建立有层次感的监控体系。
 
 **没有Cluster Agent时**
@@ -165,6 +204,8 @@ default       deployment.apps/datadog-kube-state-metrics   1/1     1            
 - deployment
   - datadog-cluster-agent
   - datadog-kube-state-metrics
+
+
 
 ## References
 - https://docs.datadoghq.com/agent/
