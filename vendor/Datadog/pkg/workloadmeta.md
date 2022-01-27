@@ -318,14 +318,37 @@ watch local pods
 
 ### kubemetadata
 
-- node-level  
+- node-level  data
   - access kubelet api, get local pods
-- cluster-level
+- cluster-level data
   - cluster-agent enable
-    - cluster-agent access kubernetes api
-    - node-agent access cluster api
+    - cluster-agent 
+      - access kubernetes api, map cluster-metadata to nodedata
+    - node-agent
+      - access cluster api, [GetPodsMetadataForNode](https://github.com/DataDog/datadog-agent/blob/3c2882c8153112431ebc3399a8a2cc200abc5814/pkg/util/clusteragent/clusteragent.go#L328)
   - cluster-agent disable
-    - node-agent access kubernetes api
+    - node-agent access kubernetes api, fetch cluster metadata
+    - [NodeMetadataMapping](https://github.com/DataDog/datadog-agent/blob/3c2882c8153112431ebc3399a8a2cc200abc5814/pkg/util/kubernetes/apiserver/apiserver_kubelet.go#L24)
 
 
+
+cluster-agent:  map cluster-metadata to nodedata
+
+```go
+// NamespacesPodsStringsSet maps pod names to a set of strings
+// keyed by the namespace a pod belongs to.
+// This data structure allows for O(1) lookups of services given a
+// namespace and pod name.
+//
+// The data is stored in the following schema:
+// {
+// 	"namespace1": {
+// 		"pod": { "svc1": {}, "svc2": {}, "svc3": {} ]
+// 	},
+//  "namespace2": {
+// 		"pod2": [ "svc1": {}, "svc2": {}, "svc3": {} ]
+// 	}
+// }
+type NamespacesPodsStringsSet map[string]MapStringSet
+```
 
