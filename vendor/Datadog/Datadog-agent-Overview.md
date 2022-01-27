@@ -107,7 +107,7 @@ checks由主要由三个加载器来加载
 
 - 根据agent导出的接口，使用python实现各个check
   - [apache/apache.py](https://github.com/DataDog/integrations-core/blob/master/apache/datadog_checks/apache/apache.py)
-- conf.yaml主要用来指定要访问的指标url，手动配置
+- conf.yaml主要用来指定要访问的指标url以及指标url的鉴权信息，手动配置
   - [apache/conf.yaml.example](https://github.com/DataDog/integrations-core/blob/master/apache/datadog_checks/apache/data/conf.yaml.example)
 - auto_conf.yaml 
   - [apache/auto_conf.yaml](https://github.com/DataDog/integrations-core/blob/master/apache/datadog_checks/apache/data/auto_conf.yaml)
@@ -167,7 +167,7 @@ checks由主要由三个加载器来加载
 - 采集本机的进程
 - 如果是容器环境，再聚合上相应的容器信息(container,pod,service 等)
 
-也是通过管理[checks](https://github.com/DataDog/datadog-agent/blob/main/pkg/process/checks/checks.go)来实现采集：
+也是通过管理[checks](https://github.com/DataDog/datadog-agent/blob/main/pkg/process/checks/checks.go)来实现采集，每个check代表一个维度的数据。
 
 ```go
 var All = []Check{
@@ -203,6 +203,15 @@ var All = []Check{
 **有Cluster Agent时**
 
 ![k8s_with_cluster_agent](https://imgix.datadoghq.com/img/blog/datadog-cluster-agent/kubernetes_diagrams_after_updated.png?auto=format&fit=max&w=847)
+
+### Cluster Agent
+
+与node-agent一样，cluster-agent 也是通过管理一系列的checks来完成各种采集任务，称为[clusters checks](https://docs.datadoghq.com/agent/cluster_agent/clusterchecksrunner/?tab=helm)。
+
+- cluster-agent 作为一个agent的配置提供者( `DD_EXTRA_CONFIG_PROVIDERS="clusterchecks"` )，向node-agent分发任务配置，确保一个执行周期内，一个cluster-check任务只会被一个node-agent执行。
+- cluster-checks只有`cluster_name` tag, 没有 `hostname` tag。
+
+
 
 
 
@@ -276,5 +285,6 @@ root      80467  80447  0 Jan20 ?        00:10:47 process-agent -config=/etc/dat
 
 ## References
 - https://docs.datadoghq.com/agent/
-- https://docs.datadoghq.com/agent/cluster_agent/
 - https://github.com/DataDog/datadog-agent
+- https://docs.datadoghq.com/agent/cluster_agent/
+- https://docs.datadoghq.com/agent/cluster_agent/clusterchecks/
