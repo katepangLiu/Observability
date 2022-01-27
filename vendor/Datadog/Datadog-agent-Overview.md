@@ -213,6 +213,35 @@ var All = []Check{
 
 
 
+```
+                               +-------------+
+                               | node agents |
+                               +-+-----------+
+                                 |
+                                 | queries (/v1/api/clusterchecks/)
+                                 |
+                       +---------v----------+
++----------+  setups   |       Handler      |   watches   +----------------+
+| AutoConf <-----------+     Public API     +-------------> leaderelection |
++-----+----+           |  init logic, glue  |             +----------------+
+      |                +---------+----------+
+      |                          |
+      | sends                    | inits
+      | configs                  | passes queries
+      |                          |
+      |            +-------------v-----------+
+      |            |        dispatcher       |
+      +------------>   Runs the dispatching  |
+                   |   logic in a goroutine  |
+                   |                         |
+                   |   +-----------------+   |
+                   |   |  clusterStore   |   |
+                   |   | holds the state |   |
+                   +---+-----------------+---+
+```
+
+
+
 
 
 ### Deployment
