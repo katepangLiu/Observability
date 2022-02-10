@@ -1,18 +1,19 @@
 # Dynatrace Oneagent Overview
 
-- server  apm 
+## Overview
 
-  - agent
-    - agent autoinject, [ld.so](https://man7.org/linux/man-pages/man8/ld.so.8.html)
-    - agents
-      - javaagent
-      - phpagent
-      - nginx
-      - apache
-      - golang
-  - extensions
-    - python extensions, load by ruxit engine
-    - jmx extensions, load by javaagent
-
+- Infrastructure insights
+- server  insights
+  - agent autoinject,  [/etc/ld.so.preload](https://man7.org/linux/man-pages/man8/ld.so.8.html)
+  - agents
+    - javaagent
+    - phpagent
+    - nginx
+    - apache
+    - golang
   
+- JMX extensions
+- extensions
+
+
 
