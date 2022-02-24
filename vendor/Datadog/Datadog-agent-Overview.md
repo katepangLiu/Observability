@@ -242,8 +242,6 @@ var All = []Check{
 
 
 
-
-
 ### Deployment
 
 - helm (建议)
@@ -302,13 +300,38 @@ root      80467  80447  0 Jan20 ?        00:10:47 process-agent -config=/etc/dat
   - datadog-cluster-agent      （向node-agent提供集群层面的元数据服务）
   - datadog-kube-state-metrics  (kube-state-metrics k8s集群指标,promethus格式， [kubernetes_state_core](https://docs.datadoghq.com/integrations/kubernetes_state_core/?tab=helm)访问该服务进行采集)
 
-### Workload
+#### Workload
 
 - daemonset
   - datadog
 - deployment
   - datadog-cluster-agent
   - datadog-kube-state-metrics
+
+
+
+### Cluster Agent API
+
+cluster-agent采集集群层面的属性，比如k8s的服务名，然后 node-agent通过API进行访问。
+
+##### Access service/datadog-cluster-agent
+
+```shell
+# 获取 datadog-cluster-agent token
+kubectl get secret/datadog-cluster-agent
+kubectl get secret/datadog-cluster-agent -o yaml |grep token
+  token: ZDU2NWtMWk0yZmpNRU1Oa3VWNXlhN1NiMlMzTUo4ZEM=
+  
+echo 'ZDU2NWtMWk0yZmpNRU1Oa3VWNXlhN1NiMlMzTUo4ZEM=' | base64 -d
+d565kLZM2fjMEMNkuV5ya7Sb2S3MJ8dC
+
+# 创建 curl pod，使用token访问 https://datadog-cluster-agent:5005/api/v1/tags/pod
+kubectl run curl --image=radial/busyboxplus:curl -i --tty
+TOKEN=d565kLZM2fjMEMNkuV5ya7Sb2S3MJ8dC
+curl --insecure --header "Authorization: Bearer ${TOKEN}" -X GET https://datadog-cluster-agent:5005/api/v1/tags/pod
+```
+
+
 
 
 
