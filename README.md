@@ -1,2 +1,2 @@
 # Observational
-Everything about Software Observational
+Everything about software observability.
